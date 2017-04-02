@@ -3,12 +3,12 @@ import math
 import textwrap
 
 # actual size of the window
-SCREEN_WIDTH = 80
-SCREEN_HEIGHT = 50
+SCREEN_WIDTH = 160
+SCREEN_HEIGHT = 100
 
 # size of the map
-MAP_WIDTH = 80
-MAP_HEIGHT = 43
+MAP_WIDTH = 160
+MAP_HEIGHT = 93
 
 # sizes and coordinates relevant for the GUI
 BAR_WIDTH = 20
@@ -403,6 +403,10 @@ def render_all():
     global fov_map, color_dark_wall, color_light_wall
     global color_dark_ground, color_light_ground
     global fov_recompute
+    global pix
+
+    libtcod.image_blit(pix, con, 20, 20, libtcod.BKGND_SET, 0.3, 0.3, 0)
+    #libtcod.image_blit_2x(pix, con, 0, 0, 0, 0, -1, -1)
 
     if fov_recompute:
         # recompute FOV if needed (the player moved or something)
@@ -636,6 +640,9 @@ libtcod.console_init_root(SCREEN_WIDTH, SCREEN_HEIGHT, 'python/libtcod tutorial'
 libtcod.sys_set_fps(LIMIT_FPS)
 con = libtcod.console_new(MAP_WIDTH, MAP_HEIGHT)
 panel = libtcod.console_new(SCREEN_WIDTH, PANEL_HEIGHT)
+
+#pix = libtcod.image_new(80,50)
+pix = libtcod.image_load("map.png")
 
 # create object representing the player
 fighter_component = Fighter(hp=30, defense=2, power=5, death_function=player_death)
