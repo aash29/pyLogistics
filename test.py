@@ -320,32 +320,6 @@ def make_map():
 
 
 def place_objects(room):
-    # choose random number of monsters
-    num_monsters = libtcod.random_get_int(0, 0, MAX_ROOM_MONSTERS)
-
-    for i in range(num_monsters):
-        # choose random spot for this monster
-        x = libtcod.random_get_int(0, room.x1 + 1, room.x2 - 1)
-        y = libtcod.random_get_int(0, room.y1 + 1, room.y2 - 1)
-
-        # only place it if the tile is not blocked
-        if not is_blocked(x, y):
-            if libtcod.random_get_int(0, 0, 100) < 80:  # 80% chance of getting an orc
-                # create an orc
-                fighter_component = Fighter(hp=10, defense=0, power=3, death_function=monster_death)
-                ai_component = BasicMonster()
-
-                monster = Object(x, y, 'o', 'orc', libtcod.desaturated_green,
-                                 blocks=True, fighter=fighter_component, ai=ai_component)
-            else:
-                # create a troll
-                fighter_component = Fighter(hp=16, defense=1, power=4, death_function=monster_death)
-                ai_component = BasicMonster()
-
-                monster = Object(x, y, 'T', 'troll', libtcod.darker_green,
-                                 blocks=True, fighter=fighter_component, ai=ai_component)
-
-            objects.append(monster)
 
     # choose random number of items
     num_items = libtcod.random_get_int(0, 0, MAX_ROOM_ITEMS)
@@ -608,17 +582,6 @@ def player_death(player):
     player.color = libtcod.dark_red
 
 
-def monster_death(monster):
-    # transform it into a nasty corpse! it doesn't block, can't be
-    # attacked and doesn't move
-    message(monster.name.capitalize() + ' is dead!', libtcod.orange)
-    monster.char = '%'
-    monster.color = libtcod.dark_red
-    monster.blocks = False
-    monster.fighter = None
-    monster.ai = None
-    monster.name = 'remains of ' + monster.name
-    monster.send_to_back()
 
 
 def cast_heal():
