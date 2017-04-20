@@ -128,7 +128,7 @@ class Object:
     def draw(self):
 
         libtcod.console_set_default_foreground(con, self.color)
-        libtcod.console_put_char(con, self.x, self.y, self.char, libtcod.BKGND_NONE)
+        libtcod.console_put_char(con, MAP_WIDTH//2, MAP_HEIGHT//2, self.char, libtcod.BKGND_NONE)
 
     def clear(self):
         # erase the character that represents this object
@@ -305,22 +305,26 @@ def render_all():
     global fov_recompute
     global pix
 
-    libtcod.image_blit(pix, con, 0, 0, libtcod.BKGND_SET, 0.5, 0.5, 0)
+    libtcod.image_blit(pix, con, player.x, player.y, libtcod.BKGND_SET, 0.5, 0.5, 0)
+
+    #libtcod.image_blit(pix, con, 0, 0, libtcod.BKGND_SET, 0.5, 0.5, 0)
     #libtcod.image_blit_2x(pix, con, 0, 0, 0, 0, -1, -1)
 
 
 
     # draw all objects in the list, except the player. we want it to
     # always appear over all other objects! so it's drawn later.
-    for object in objects:
-        if object != player:
-            object.draw()
+    #for object in objects:
+    #    if object != player:
+    #        object.draw()
     player.draw()
 
     for x in range(MAP_WIDTH):
         for y in range(MAP_HEIGHT):
             if map[x][y].blocked:
                 libtcod.console_put_char(con, x, y, '#', libtcod.BKGND_NONE)
+            else:
+                libtcod.console_put_char(con, x, y, ' ', libtcod.BKGND_NONE)
 
     # blit the contents of "con" to the root console
     libtcod.console_blit(con, 0, 0, MAP_WIDTH, MAP_HEIGHT, 0, 0, 0)
@@ -504,7 +508,7 @@ player = Object(35, 35, '@', 'player', libtcod.black, blocks=True, fighter=fight
 # the list of objects with just the player
 objects = [player]
 
-libtcod.image_blit(pix, con, 0, 0, libtcod.BKGND_SET, 0.5, 0.5, 0)
+libtcod.image_blit(pix, con, player.x, player.y, libtcod.BKGND_SET, 0.5, 0.5, 0)
 
 # generate map (at this point it's not drawn to the screen)
 make_map()
@@ -526,6 +530,8 @@ mouse = libtcod.Mouse()
 key = libtcod.Key()
 
 while not libtcod.console_is_window_closed():
+
+    make_map()
 
     # render the screen
     libtcod.sys_check_for_event(libtcod.EVENT_KEY_PRESS | libtcod.EVENT_MOUSE, key, mouse)
