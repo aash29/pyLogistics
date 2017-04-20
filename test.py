@@ -33,7 +33,7 @@ FOV_ALGO = 0  # default FOV algorithm
 FOV_LIGHT_WALLS = True  # light walls or not
 TORCH_RADIUS = 10
 
-LIMIT_FPS = 20  # 20 frames-per-second maximum
+LIMIT_FPS = 50  # 20 frames-per-second maximum
 
 color_dark_wall = libtcod.Color(0, 0, 100)
 color_light_wall = libtcod.Color(130, 110, 50)
@@ -126,11 +126,9 @@ class Object:
         objects.insert(0, self)
 
     def draw(self):
-        # only show if it's visible to the player
-        if libtcod.map_is_in_fov(fov_map, self.x, self.y):
-            # set the color and then draw the character that represents this object at its position
-            libtcod.console_set_default_foreground(con, self.color)
-            libtcod.console_put_char(con, self.x, self.y, self.char, libtcod.BKGND_NONE)
+
+        libtcod.console_set_default_foreground(con, self.color)
+        libtcod.console_put_char(con, self.x, self.y, self.char, libtcod.BKGND_NONE)
 
     def clear(self):
         # erase the character that represents this object
@@ -227,96 +225,24 @@ def is_blocked(x, y):
     return False
 
 
-def create_room(room):
-    global map
-    # go through the tiles in the rectangle and make them passable
-    for x in range(room.x1 + 1, room.x2):
-        for y in range(room.y1 + 1, room.y2):
-            map[x][y].blocked = False
-            map[x][y].block_sight = False
-
-
-def create_h_tunnel(x1, x2, y):
-    global map
-    # horizontal tunnel. min() and max() are used in case x1>x2
-    for x in range(min(x1, x2), max(x1, x2) + 1):
-        map[x][y].blocked = False
-        map[x][y].block_sight = False
-
-
-def create_v_tunnel(y1, y2, x):
-    global map
-    # vertical tunnel
-    for y in range(min(y1, y2), max(y1, y2) + 1):
-        map[x][y].blocked = False
-        map[x][y].block_sight = False
-
-
 def make_map():
     global map, player
 
     # fill map with "blocked" tiles
-    map = [[Tile(True)
+    map = [[Tile(False)
             for y in range(MAP_HEIGHT)]
            for x in range(MAP_WIDTH)]
 
-    rooms = []
-    num_rooms = 0
+    for x in range(MAP_WIDTH):
+        for y in range(MAP_HEIGHT):
+            c1 = libtcod.console_get_char_background(con, x, y)
+            map[x][y].blocked = not ((c1.r == 242) and (c1.g == 239) and (c1.b == 233))
 
-    for r in range(MAX_ROOMS):
-        # random width and height
-        w = libtcod.random_get_int(0, ROOM_MIN_SIZE, ROOM_MAX_SIZE)
-        h = libtcod.random_get_int(0, ROOM_MIN_SIZE, ROOM_MAX_SIZE)
-        # random position without going out of the boundaries of the map
-        x = libtcod.random_get_int(0, 0, MAP_WIDTH - w - 1)
-        y = libtcod.random_get_int(0, 0, MAP_HEIGHT - h - 1)
 
-        # "Rect" class makes rectangles easier to work with
-        new_room = Rect(x, y, w, h)
 
-        # run through the other rooms and see if they intersect with this one
-        failed = False
-        for other_room in rooms:
-            if new_room.intersect(other_room):
-                failed = True
-                break
 
-        if not failed:
-            # this means there are no intersections, so this room is valid
+    #message(str(c1==libtcod.Color(242,239,233)))
 
-            # "paint" it to the map's tiles
-            create_room(new_room)
-
-            # center coordinates of new room, will be useful later
-            (new_x, new_y) = new_room.center()
-
-            if num_rooms == 0:
-                # this is the first room, where the player starts at
-                player.x = new_x
-                player.y = new_y
-            else:
-                # all rooms after the first:
-                # connect it to the previous room with a tunnel
-
-                # center coordinates of previous room
-                (prev_x, prev_y) = rooms[num_rooms - 1].center()
-
-                # draw a coin (random number that is either 0 or 1)
-                if libtcod.random_get_int(0, 0, 1) == 1:
-                    # first move horizontally, then vertically
-                    create_h_tunnel(prev_x, new_x, prev_y)
-                    create_v_tunnel(prev_y, new_y, new_x)
-                else:
-                    # first move vertically, then horizontally
-                    create_v_tunnel(prev_y, new_y, prev_x)
-                    create_h_tunnel(prev_x, new_x, new_y)
-
-            # add some contents to this room, such as monsters
-            place_objects(new_room)
-
-            # finally, append the new room to the list
-            rooms.append(new_room)
-            num_rooms += 1
 
 
 def place_objects(room):
@@ -379,34 +305,10 @@ def render_all():
     global fov_recompute
     global pix
 
-    libtcod.image_blit(pix, con, 20, 20, libtcod.BKGND_SET, 0.3, 0.3, 0)
+    libtcod.image_blit(pix, con, 0, 0, libtcod.BKGND_SET, 0.5, 0.5, 0)
     #libtcod.image_blit_2x(pix, con, 0, 0, 0, 0, -1, -1)
 
-    if fov_recompute:
-        # recompute FOV if needed (the player moved or something)
-        fov_recompute = False
-        libtcod.map_compute_fov(fov_map, player.x, player.y, TORCH_RADIUS, FOV_LIGHT_WALLS, FOV_ALGO)
 
-        # go through all tiles, and set their background color according to the FOV
-        for y in range(MAP_HEIGHT):
-            for x in range(MAP_WIDTH):
-                visible = libtcod.map_is_in_fov(fov_map, x, y)
-                wall = map[x][y].block_sight
-                if not visible:
-                    # if it's not visible right now, the player can only see it if it's explored
-                    if map[x][y].explored:
-                        if wall:
-                            libtcod.console_set_char_background(con, x, y, color_dark_wall, libtcod.BKGND_SET)
-                        else:
-                            libtcod.console_set_char_background(con, x, y, color_dark_ground, libtcod.BKGND_SET)
-                else:
-                    # it's visible
-                    if wall:
-                        libtcod.console_set_char_background(con, x, y, color_light_wall, libtcod.BKGND_SET)
-                    else:
-                        libtcod.console_set_char_background(con, x, y, color_light_ground, libtcod.BKGND_SET)
-                    # since it's visible, explore it
-                    map[x][y].explored = True
 
     # draw all objects in the list, except the player. we want it to
     # always appear over all other objects! so it's drawn later.
@@ -414,6 +316,11 @@ def render_all():
         if object != player:
             object.draw()
     player.draw()
+
+    for x in range(MAP_WIDTH):
+        for y in range(MAP_HEIGHT):
+            if map[x][y].blocked:
+                libtcod.console_put_char(con, x, y, '#', libtcod.BKGND_NONE)
 
     # blit the contents of "con" to the root console
     libtcod.console_blit(con, 0, 0, MAP_WIDTH, MAP_HEIGHT, 0, 0, 0)
@@ -455,25 +362,8 @@ def message(new_msg, color=libtcod.white):
 
 
 def player_move_or_attack(dx, dy):
-    global fov_recompute
+    player.move(dx, dy)
 
-    # the coordinates the player is moving to/attacking
-    x = player.x + dx
-    y = player.y + dy
-
-    # try to find an attackable object there
-    target = None
-    for object in objects:
-        if object.fighter and object.x == x and object.y == y:
-            target = object
-            break
-
-    # attack if target found, move otherwise
-    if target is not None:
-        player.fighter.attack(target)
-    else:
-        player.move(dx, dy)
-        fov_recompute = True
 
 
 def menu(header, options, width):
@@ -609,21 +499,18 @@ pix = libtcod.image_load("map.png")
 
 # create object representing the player
 fighter_component = Fighter(hp=30, defense=2, power=5, death_function=player_death)
-player = Object(0, 0, '@', 'player', libtcod.white, blocks=True, fighter=fighter_component)
+player = Object(35, 35, '@', 'player', libtcod.black, blocks=True, fighter=fighter_component)
 
 # the list of objects with just the player
 objects = [player]
 
+libtcod.image_blit(pix, con, 0, 0, libtcod.BKGND_SET, 0.5, 0.5, 0)
+
 # generate map (at this point it's not drawn to the screen)
 make_map()
 
-# create the FOV map, according to the generated map
-fov_map = libtcod.map_new(MAP_WIDTH, MAP_HEIGHT)
-for y in range(MAP_HEIGHT):
-    for x in range(MAP_WIDTH):
-        libtcod.map_set_properties(fov_map, x, y, not map[x][y].block_sight, not map[x][y].blocked)
 
-fov_recompute = True
+
 game_state = 'playing'
 player_action = None
 
@@ -633,7 +520,7 @@ inventory = []
 game_msgs = []
 
 # a warm welcoming message!
-message('Welcome stranger! Prepare to perish in the Tombs of the Ancient Kings.', libtcod.red)
+#message('Welcome stranger! Prepare to perish in the Tombs of the Ancient Kings.', libtcod.red)
 
 mouse = libtcod.Mouse()
 key = libtcod.Key()
@@ -654,9 +541,3 @@ while not libtcod.console_is_window_closed():
     player_action = handle_keys()
     if player_action == 'exit':
         break
-
-    # let monsters take their turn
-    if game_state == 'playing' and player_action != 'didnt-take-turn':
-        for object in objects:
-            if object.ai:
-                object.ai.take_turn()

@@ -15,5 +15,6 @@ m.zoom_to_box(bbox)
 
 
 
+
 print "Scale = " , m.scale()
 render_to_file(m, map_output)
