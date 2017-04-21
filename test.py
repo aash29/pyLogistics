@@ -8,7 +8,10 @@ SCREEN_HEIGHT = 100
 
 # size of the map
 MAP_WIDTH = 160
-MAP_HEIGHT = 93
+MAP_HEIGHT = 92
+
+MAP_WIDTH2 = MAP_WIDTH//2
+MAP_HEIGHT2 = MAP_HEIGHT//2
 
 # sizes and coordinates relevant for the GUI
 BAR_WIDTH = 20
@@ -19,12 +22,7 @@ MSG_WIDTH = SCREEN_WIDTH - BAR_WIDTH - 2
 MSG_HEIGHT = PANEL_HEIGHT - 1
 INVENTORY_WIDTH = 50
 
-# parameters for dungeon generator
-ROOM_MAX_SIZE = 10
-ROOM_MIN_SIZE = 6
-MAX_ROOMS = 30
-MAX_ROOM_MONSTERS = 3
-MAX_ROOM_ITEMS = 2
+
 
 # spell values
 HEAL_AMOUNT = 4
@@ -33,7 +31,7 @@ FOV_ALGO = 0  # default FOV algorithm
 FOV_LIGHT_WALLS = True  # light walls or not
 TORCH_RADIUS = 10
 
-LIMIT_FPS = 50  # 20 frames-per-second maximum
+LIMIT_FPS = 20  # 20 frames-per-second maximum
 
 color_dark_wall = libtcod.Color(0, 0, 100)
 color_light_wall = libtcod.Color(130, 110, 50)
@@ -97,6 +95,7 @@ class Object:
 
     def move(self, dx, dy):
         # move by the given amount, if the destination is not blocked
+        #if not is_blocked(MAP_WIDTH//2 + dx, MAP_HEIGHT//2 + dy):
         if not is_blocked(self.x + dx, self.y + dy):
             self.x += dx
             self.y += dy
@@ -173,54 +172,13 @@ class Fighter:
             self.hp = self.max_hp
 
 
-class BasicMonster:
-    # AI for a basic monster.
-    def take_turn(self):
-        # a basic monster takes its turn. if you can see it, it can see you
-        monster = self.owner
-        if libtcod.map_is_in_fov(fov_map, monster.x, monster.y):
 
-            # move towards player if far away
-            if monster.distance_to(player) >= 2:
-                monster.move_towards(player.x, player.y)
-
-            # close enough, attack! (if the player is still alive.)
-            elif player.fighter.hp > 0:
-                monster.fighter.attack(player)
-
-
-class Item:
-    # an item that can be picked up and used.
-    def __init__(self, use_function=None):
-        self.use_function = use_function
-
-    def pick_up(self):
-        # add to the player's inventory and remove from the map
-        if len(inventory) >= 26:
-            message('Your inventory is full, cannot pick up ' + self.owner.name + '.', libtcod.red)
-        else:
-            inventory.append(self.owner)
-            objects.remove(self.owner)
-            message('You picked up a ' + self.owner.name + '!', libtcod.green)
-
-    def use(self):
-        # just call the "use_function" if it is defined
-        if self.use_function is None:
-            message('The ' + self.owner.name + ' cannot be used.')
-        else:
-            if self.use_function() != 'cancelled':
-                inventory.remove(self.owner)  # destroy after use, unless it was cancelled for some reason
 
 
 def is_blocked(x, y):
     # first test the map tile
-    if map[x][y].blocked:
+    if map[x,y].blocked:
         return True
-
-    # now check for any blocking objects
-    for object in objects:
-        if object.blocks and object.x == x and object.y == y:
-            return True
 
     return False
 
@@ -229,14 +187,16 @@ def make_map():
     global map, player
 
     # fill map with "blocked" tiles
-    map = [[Tile(False)
-            for y in range(MAP_HEIGHT)]
-           for x in range(MAP_WIDTH)]
+    #map = [[Tile(False)
+    #        for y in range(player.y - MAP_HEIGHT2, player.y + MAP_HEIGHT2)
+    #        for x in range(player.x-MAP_WIDTH2,player.x+MAP_WIDTH2)]]
 
-    for x in range(MAP_WIDTH):
-        for y in range(MAP_HEIGHT):
-            c1 = libtcod.console_get_char_background(con, x, y)
-            map[x][y].blocked = not ((c1.r == 242) and (c1.g == 239) and (c1.b == 233))
+    map=dict();
+    for x1 in range(- MAP_WIDTH2,  + MAP_WIDTH2):
+        for y1 in range(- MAP_HEIGHT2, + MAP_HEIGHT2):
+            c1 = libtcod.console_get_char_background(con, MAP_WIDTH2 + x1, MAP_HEIGHT2 + y1)
+            map[x1+player.x, y1+player.y] = Tile(False)
+            map[x1+player.x, y1+player.y].blocked = not ((c1.r == 242) and (c1.g == 239) and (c1.b == 233))
 
 
 
@@ -317,14 +277,17 @@ def render_all():
     #for object in objects:
     #    if object != player:
     #        object.draw()
-    player.draw()
 
-    for x in range(MAP_WIDTH):
-        for y in range(MAP_HEIGHT):
-            if map[x][y].blocked:
-                libtcod.console_put_char(con, x, y, '#', libtcod.BKGND_NONE)
+
+
+    for x1 in range(-MAP_WIDTH2, MAP_WIDTH2):
+        for y1 in range(-MAP_HEIGHT2, MAP_HEIGHT2):
+            if map[x1 + player.x, y1 + player.y].blocked:
+                libtcod.console_put_char(con, MAP_WIDTH2 + x1, MAP_HEIGHT2 + y1, '#', libtcod.BKGND_NONE)
             else:
-                libtcod.console_put_char(con, x, y, ' ', libtcod.BKGND_NONE)
+                libtcod.console_put_char(con, MAP_WIDTH2 + x1, MAP_HEIGHT2 + y1, ' ', libtcod.BKGND_NONE)
+
+    player.draw()
 
     # blit the contents of "con" to the root console
     libtcod.console_blit(con, 0, 0, MAP_WIDTH, MAP_HEIGHT, 0, 0, 0)
@@ -366,7 +329,10 @@ def message(new_msg, color=libtcod.white):
 
 
 def player_move_or_attack(dx, dy):
+    #make_map()
     player.move(dx, dy)
+
+
 
 
 
@@ -531,17 +497,19 @@ key = libtcod.Key()
 
 while not libtcod.console_is_window_closed():
 
-    make_map()
 
     # render the screen
-    libtcod.sys_check_for_event(libtcod.EVENT_KEY_PRESS | libtcod.EVENT_MOUSE, key, mouse)
+    libtcod.sys_wait_for_event(libtcod.EVENT_KEY_PRESS | libtcod.EVENT_MOUSE, key, mouse, True)
+
+
+    make_map()
+
     render_all()
 
     libtcod.console_flush()
 
-    # erase all objects at their old locations, before they move
-    for object in objects:
-        object.clear()
+
+
 
     # handle keys and exit game if needed
     player_action = handle_keys()
