@@ -7,11 +7,11 @@ SCREEN_WIDTH = 160
 SCREEN_HEIGHT = 100
 
 # size of the map
-MAP_WIDTH = 160
-MAP_HEIGHT = 92
+MAP_WIDTH = 161
+MAP_HEIGHT = 91
 
-MAP_WIDTH2 = MAP_WIDTH//2
-MAP_HEIGHT2 = MAP_HEIGHT//2
+MAP_WIDTH2 = 80
+MAP_HEIGHT2 = 45
 
 # sizes and coordinates relevant for the GUI
 BAR_WIDTH = 20
@@ -52,24 +52,6 @@ class Tile:
         self.block_sight = block_sight
 
 
-class Rect:
-    # a rectangle on the map. used to characterize a room.
-    def __init__(self, x, y, w, h):
-        self.x1 = x
-        self.y1 = y
-        self.x2 = x + w
-        self.y2 = y + h
-
-    def center(self):
-        center_x = (self.x1 + self.x2) / 2
-        center_y = (self.y1 + self.y2) / 2
-        return (center_x, center_y)
-
-    def intersect(self, other):
-        # returns true if this rectangle intersects with another one
-        return (self.x1 <= other.x2 and self.x2 >= other.x1 and
-                self.y1 <= other.y2 and self.y2 >= other.y1)
-
 
 class Object:
     # this is a generic object: the player, a monster, an item, the stairs...
@@ -96,7 +78,7 @@ class Object:
     def move(self, dx, dy):
         # move by the given amount, if the destination is not blocked
         #if not is_blocked(MAP_WIDTH//2 + dx, MAP_HEIGHT//2 + dy):
-        if not is_blocked(self.x + dx, self.y + dy):
+        if not is_blocked(self.x - dx, self.y - dy):
             self.x += dx
             self.y += dy
 
@@ -191,7 +173,6 @@ def make_map():
     #        for y in range(player.y - MAP_HEIGHT2, player.y + MAP_HEIGHT2)
     #        for x in range(player.x-MAP_WIDTH2,player.x+MAP_WIDTH2)]]
 
-    map=dict();
     for x1 in range(- MAP_WIDTH2,  + MAP_WIDTH2):
         for y1 in range(- MAP_HEIGHT2, + MAP_HEIGHT2):
             c1 = libtcod.console_get_char_background(con, MAP_WIDTH2 + x1, MAP_HEIGHT2 + y1)
@@ -265,8 +246,6 @@ def render_all():
     global fov_recompute
     global pix
 
-    libtcod.image_blit(pix, con, player.x, player.y, libtcod.BKGND_SET, 0.5, 0.5, 0)
-
     #libtcod.image_blit(pix, con, 0, 0, libtcod.BKGND_SET, 0.5, 0.5, 0)
     #libtcod.image_blit_2x(pix, con, 0, 0, 0, 0, -1, -1)
 
@@ -280,12 +259,12 @@ def render_all():
 
 
 
-    for x1 in range(-MAP_WIDTH2, MAP_WIDTH2):
-        for y1 in range(-MAP_HEIGHT2, MAP_HEIGHT2):
-            if map[x1 + player.x, y1 + player.y].blocked:
-                libtcod.console_put_char(con, MAP_WIDTH2 + x1, MAP_HEIGHT2 + y1, '#', libtcod.BKGND_NONE)
-            else:
-                libtcod.console_put_char(con, MAP_WIDTH2 + x1, MAP_HEIGHT2 + y1, ' ', libtcod.BKGND_NONE)
+    #for x1 in range(-MAP_WIDTH2, MAP_WIDTH2):
+    #    for y1 in range(-MAP_HEIGHT2, MAP_HEIGHT2):
+    #        if is_blocked(x1 + player.x, y1 + player.y):
+    #            libtcod.console_put_char(con, MAP_WIDTH2 + x1, MAP_HEIGHT2 + y1, '#', libtcod.BKGND_NONE)
+    #        else:
+    #            libtcod.console_put_char(con, MAP_WIDTH2 + x1, MAP_HEIGHT2 + y1, ' ', libtcod.BKGND_NONE)
 
     player.draw()
 
@@ -304,8 +283,8 @@ def render_all():
         y += 1
 
     # show the player's stats
-    render_bar(1, 1, BAR_WIDTH, 'HP', player.fighter.hp, player.fighter.max_hp,
-               libtcod.light_red, libtcod.darker_red)
+    #render_bar(1, 1, BAR_WIDTH, 'HP', player.fighter.hp, player.fighter.max_hp,
+    #           libtcod.light_red, libtcod.darker_red)
 
     # display names of objects under the mouse
     libtcod.console_set_default_foreground(panel, libtcod.light_gray)
@@ -330,6 +309,7 @@ def message(new_msg, color=libtcod.white):
 
 def player_move_or_attack(dx, dy):
     #make_map()
+    make_map()
     player.move(dx, dy)
 
 
@@ -401,16 +381,16 @@ def handle_keys():
     if game_state == 'playing':
         # movement keys
         if key.vk == libtcod.KEY_UP:
-            player_move_or_attack(0, -1)
-
-        elif key.vk == libtcod.KEY_DOWN:
             player_move_or_attack(0, 1)
 
+        elif key.vk == libtcod.KEY_DOWN:
+            player_move_or_attack(0, -1)
+
         elif key.vk == libtcod.KEY_LEFT:
-            player_move_or_attack(-1, 0)
+            player_move_or_attack(1, 0)
 
         elif key.vk == libtcod.KEY_RIGHT:
-            player_move_or_attack(1, 0)
+            player_move_or_attack(-1, 0)
         else:
             # test for other keys
             key_char = chr(key.c)
@@ -469,15 +449,12 @@ pix = libtcod.image_load("map.png")
 
 # create object representing the player
 fighter_component = Fighter(hp=30, defense=2, power=5, death_function=player_death)
-player = Object(35, 35, '@', 'player', libtcod.black, blocks=True, fighter=fighter_component)
+player = Object(30, 30, '@', 'player', libtcod.black, blocks=False, fighter=fighter_component)
 
 # the list of objects with just the player
 objects = [player]
 
 libtcod.image_blit(pix, con, player.x, player.y, libtcod.BKGND_SET, 0.5, 0.5, 0)
-
-# generate map (at this point it's not drawn to the screen)
-make_map()
 
 
 
@@ -495,21 +472,23 @@ game_msgs = []
 mouse = libtcod.Mouse()
 key = libtcod.Key()
 
+map=dict();
+
+make_map()
+
 while not libtcod.console_is_window_closed():
 
 
     # render the screen
-    libtcod.sys_wait_for_event(libtcod.EVENT_KEY_PRESS | libtcod.EVENT_MOUSE, key, mouse, True)
+    libtcod.sys_check_for_event(libtcod.EVENT_KEY_PRESS | libtcod.EVENT_MOUSE, key, mouse)
+
+    libtcod.image_blit(pix, con, player.x, player.y, libtcod.BKGND_SET, 0.5, 0.5, 0)
 
 
-    make_map()
 
     render_all()
 
     libtcod.console_flush()
-
-
-
 
     # handle keys and exit game if needed
     player_action = handle_keys()
