@@ -177,7 +177,8 @@ def make_map():
         for y1 in range(- MAP_HEIGHT2, + MAP_HEIGHT2):
             c1 = libtcod.console_get_char_background(con, MAP_WIDTH2 + x1, MAP_HEIGHT2 + y1)
             map[x1+player.x, y1+player.y] = Tile(False)
-            map[x1+player.x, y1+player.y].blocked = not ((c1.r == 242) and (c1.g == 239) and (c1.b == 233))
+            #map[x1+player.x, y1+player.y].blocked = not ((c1.r == 242) and (c1.g == 239) and (c1.b == 233))  #background
+            map[x1 + player.x, y1 + player.y].blocked = ((c1.r == 128) and (c1.g == 128) and (c1.b == 128))
 
 
 
@@ -437,6 +438,26 @@ def cast_heal():
 #############################################
 # Initialization & Main Loop
 #############################################
+
+#from osmread import parse_file, Way, Node
+
+#bld_count = 0
+#mapNodes=dict()
+#for entity in parse_file('map.osm'):
+#    if isinstance(entity, Node):
+#        mapNodes[entity.id]=entity
+#    if isinstance(entity, Way) and 'building' in entity.tags:
+#        bld_count += 1
+#        for n1 in entity.nodes:
+#            #print(mapNodes[n1])
+
+#print("%d highways found" % bld_count)
+
+
+import geojson
+
+geojson.load()
+
 
 libtcod.console_set_custom_font('arial10x10.png', libtcod.FONT_TYPE_GREYSCALE | libtcod.FONT_LAYOUT_TCOD)
 libtcod.console_init_root(SCREEN_WIDTH, SCREEN_HEIGHT, 'python/libtcod tutorial', False)
