@@ -435,6 +435,22 @@ def cast_heal():
     player.fighter.heal(HEAL_AMOUNT)
 
 
+# x, y -- x and y coordinates of point
+# poly -- a list of tuples [(x, y), (x, y), ...]
+def isPointInPath(x, y, poly):
+    num = len(poly)
+    i = 0
+    j = num - 1
+    c = False
+    for i in range(num):
+        if ((poly[i][1] > y) != (poly[j][1] > y)) and \
+                (x < (poly[j][0] - poly[i][0]) * (y - poly[i][1]) / (poly[j][1] - poly[i][1]) + poly[i][0]):
+            c = not c
+        j = i
+    return c
+
+
+
 #############################################
 # Initialization & Main Loop
 #############################################
@@ -456,7 +472,14 @@ def cast_heal():
 
 import geojson
 
-geojson.load()
+import json
+
+with open('saint-petersburg_russia_buildings.geojson','r') as f:
+    data = json.load(f)
+
+for feature in data['features']:
+    print feature['geometry']['type']
+    print feature['geometry']['coordinates']
 
 
 libtcod.console_set_custom_font('arial10x10.png', libtcod.FONT_TYPE_GREYSCALE | libtcod.FONT_LAYOUT_TCOD)
