@@ -1,10 +1,17 @@
+# -*- coding: utf-8 -*-
+from __future__ import division
 import libtcodpy as libtcod
 import math
 import textwrap
 
+
+
 # actual size of the window
 SCREEN_WIDTH = 160
 SCREEN_HEIGHT = 100
+
+
+
 
 # size of the map
 MAP_WIDTH = 161
@@ -449,6 +456,20 @@ def isPointInPath(x, y, poly):
         j = i
     return c
 
+# Program to flatten an arbitrarily nested list.
+
+
+def flatten(lis):
+    """Given a list, possibly nested to any level, return it flattened."""
+    new_lis = []
+    for item in lis:
+        if isinstance(item, list):
+            new_lis.extend(flatten(item))
+        else:
+            new_lis.append(item)
+    return new_lis
+
+
 
 
 #############################################
@@ -473,14 +494,68 @@ def isPointInPath(x, y, poly):
 import geojson
 
 import json
+import itertools
 
-with open('saint-petersburg_russia_buildings.geojson','r') as f:
+with open('test.geojson','r') as f:
     data = json.load(f)
 
+polys=[]
 for feature in data['features']:
-    print feature['geometry']['type']
-    print feature['geometry']['coordinates']
+    #print feature['geometry']['type']
+    #print feature['geometry']['coordinates']
+    if feature['geometry']['type'] == 'Polygon':
+        polys.append(feature['geometry']['coordinates'])
+    #if feature['geometry']['type'] == 'MultiPolygon':
+    #    poly1.extend(feature['geometry']['coordinates'])
 
+print polys
+#внешнаяя граница первая, внутренние остальные
+
+#pt1 = (30.29212359637388, 59.81219977203058)
+
+xlist = []
+ylist=[]
+for poly1 in polys:
+    for path1 in poly1:
+        for pt1 in path1:
+            xlist.append(pt1[0])
+            ylist.append(pt1[1])
+
+maxX = max(xlist)
+maxY = max(ylist)
+minX = min(xlist)
+minY = min(ylist)
+
+scaleX = maxX-minX
+scaleY = maxY-minY
+
+poly2=polys[0]
+
+for path2 in poly2:
+    for i, pt2 in enumerate(path2):
+        path2[i][0] = (path2[i][0] - minX) / scaleX
+        path2[i][1] = (path2[i][1] - minY) / scaleY
+
+poly3=[]
+for path2 in poly2:
+    poly3.extend(path2)
+    poly3.append(path2[0])
+#print maxX,minX,maxY,minY
+
+print poly3
+
+
+
+#дыра по часовой, граница против
+poly2 = [(1, 1), (1, -1), (-1, -1), (-1, 1), (1, 1), (2, 2), (-2, 2), (-2, -2), (2, -2), (2, 2)]
+
+poly4 = [(0.5, 0.5), (0.5, -0.5), (-0.5, -0.5), (-0.5, 0.5), (0.5, 0.5), (1, 1), (-1, 1), (-1, -1), (1, -1), (1, 1)]
+
+
+print isPointInPath(-1.5, 1.5, poly2)
+
+
+#libtcod.line()
 
 libtcod.console_set_custom_font('arial10x10.png', libtcod.FONT_TYPE_GREYSCALE | libtcod.FONT_LAYOUT_TCOD)
 libtcod.console_init_root(SCREEN_WIDTH, SCREEN_HEIGHT, 'python/libtcod tutorial', False)
@@ -498,9 +573,7 @@ player = Object(30, 30, '@', 'player', libtcod.black, blocks=False, fighter=figh
 # the list of objects with just the player
 objects = [player]
 
-libtcod.image_blit(pix, con, player.x, player.y, libtcod.BKGND_SET, 0.5, 0.5, 0)
-
-
+#libtcod.image_blit(pix, con, player.x, player.y, libtcod.BKGND_SET, 0.5, 0.5, 0)
 
 game_state = 'playing'
 player_action = None
@@ -526,11 +599,18 @@ while not libtcod.console_is_window_closed():
     # render the screen
     libtcod.sys_check_for_event(libtcod.EVENT_KEY_PRESS | libtcod.EVENT_MOUSE, key, mouse)
 
-    libtcod.image_blit(pix, con, player.x, player.y, libtcod.BKGND_SET, 0.5, 0.5, 0)
+    #libtcod.image_blit(pix, con, player.x, player.y, libtcod.BKGND_SET, 0.5, 0.5, 0)
 
 
 
     render_all()
+
+    for i in range(0,MAP_WIDTH):
+        for j in range(0,MAP_HEIGHT):
+            x = i / MAP_WIDTH
+            y = j / MAP_HEIGHT
+            if isPointInPath(x, y, poly3):
+                libtcod.console_set_char_background(con, i,j, libtcod.white)
 
     libtcod.console_flush()
 
