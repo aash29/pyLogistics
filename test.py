@@ -11,7 +11,8 @@ SCREEN_WIDTH = 160
 SCREEN_HEIGHT = 100
 
 
-
+GLOBALMAP_WIDTH = 200
+GLOBALMAP_HEIGHT = 200
 
 # size of the map
 MAP_WIDTH = 161
@@ -85,7 +86,7 @@ class Object:
     def move(self, dx, dy):
         # move by the given amount, if the destination is not blocked
         #if not is_blocked(MAP_WIDTH//2 + dx, MAP_HEIGHT//2 + dy):
-        if not is_blocked(self.x - dx, self.y - dy):
+        if not is_blocked(self.x + dx, self.y + dy):
             self.x += dx
             self.y += dy
 
@@ -166,7 +167,7 @@ class Fighter:
 
 def is_blocked(x, y):
     # first test the map tile
-    if map[x,y].blocked:
+    if traversalMap[x,y]==1:
         return True
 
     return False
@@ -317,7 +318,6 @@ def message(new_msg, color=libtcod.white):
 
 def player_move_or_attack(dx, dy):
     #make_map()
-    make_map()
     player.move(dx, dy)
 
 
@@ -389,16 +389,16 @@ def handle_keys():
     if game_state == 'playing':
         # movement keys
         if key.vk == libtcod.KEY_UP:
-            player_move_or_attack(0, 1)
-
-        elif key.vk == libtcod.KEY_DOWN:
             player_move_or_attack(0, -1)
 
+        elif key.vk == libtcod.KEY_DOWN:
+            player_move_or_attack(0, 1)
+
         elif key.vk == libtcod.KEY_LEFT:
-            player_move_or_attack(1, 0)
+            player_move_or_attack(-1, 0)
 
         elif key.vk == libtcod.KEY_RIGHT:
-            player_move_or_attack(-1, 0)
+            player_move_or_attack(1, 0)
         else:
             # test for other keys
             key_char = chr(key.c)
@@ -444,6 +444,37 @@ def cast_heal():
 
 # x, y -- x and y coordinates of point
 # poly -- a list of tuples [(x, y), (x, y), ...]
+
+#Concave Components, Multiple Components, and Holes
+
+#The polygon may be concave. However, if a vertex is very close to an edge (that the vertex is not an end of) then beware of roundoff errors.
+
+#The direction that you list the vertices (clockwise or counterclockwise) does not matter.
+
+#The polygon may contain multiple separate components, and/or holes, which may be concave, provided that you separate the components and holes with a (0,0) vertex, as follows.
+
+#First, include a (0,0) vertex.
+
+#Then include the first component' vertices, repeating its first vertex after the last vertex.
+
+#Include another (0,0) vertex.
+
+#Include another component or hole, repeating its first vertex after the last vertex.
+
+#Repeat the above two steps for each component and hole.
+
+#Include a final (0,0) vertex.
+
+#For example, let three components' vertices be A1, A2, A3, B1, B2, B3, and C1, C2, C3. Let two holes be H1, H2, H3, and I1, I2, I3. Let O be the point (0,0). List the vertices thus:
+
+#O, A1, A2, A3, A1, O, B1, B2, B3, B1, O, C1, C2, C3, C1, O, H1, H2, H3, H1, O, I1, I2, I3, I1, O.
+
+#Each component or hole's vertices may be listed either clockwise or counter-clockwise.
+
+#If there is only one connected component, then it is optional to repeat the first vertex at the end. It's also optional to surround the component with zero vertices.
+
+
+
 def isPointInPath(x, y, poly):
     num = len(poly)
     i = 0
@@ -491,30 +522,30 @@ def flatten(lis):
 #print("%d highways found" % bld_count)
 
 
-import geojson
-
 import json
-import itertools
+import numpy
 
-with open('test.geojson','r') as f:
+with open('map.geojson','r') as f:
     data = json.load(f)
 
 polys=[]
 for feature in data['features']:
     #print feature['geometry']['type']
     #print feature['geometry']['coordinates']
-    if feature['geometry']['type'] == 'Polygon':
-        polys.append(feature['geometry']['coordinates'])
+    if ('building' in feature['properties']) or ('waterway' in feature['properties']):
+        if feature['geometry']['type'] == 'Polygon':
+            polys.append(feature['geometry']['coordinates'])
     #if feature['geometry']['type'] == 'MultiPolygon':
     #    poly1.extend(feature['geometry']['coordinates'])
 
-print polys
+print "Number of zones:" + str(len(data['features']))
 #внешнаяя граница первая, внутренние остальные
 
 #pt1 = (30.29212359637388, 59.81219977203058)
 
 xlist = []
 ylist=[]
+
 for poly1 in polys:
     for path1 in poly1:
         for pt1 in path1:
@@ -529,17 +560,19 @@ minY = min(ylist)
 scaleX = maxX-minX
 scaleY = maxY-minY
 
-poly2=polys[0]
-
-for path2 in poly2:
-    for i, pt2 in enumerate(path2):
-        path2[i][0] = (path2[i][0] - minX) / scaleX
-        path2[i][1] = (path2[i][1] - minY) / scaleY
+batchPolys =polys[0:5]
+for poly2 in batchPolys:
+    for path2 in poly2:
+        for i, pt2 in enumerate(path2):
+            path2[i][0] = (path2[i][0] - minX) / scaleX
+            path2[i][1] = (path2[i][1] - minY) / scaleY
 
 poly3=[]
-for path2 in poly2:
-    poly3.extend(path2)
-    poly3.append(path2[0])
+for poly2 in batchPolys:
+    for path2 in poly2:
+        poly3.extend(path2)
+        poly3.append(path2[0])
+        poly3.append([0,0])
 #print maxX,minX,maxY,minY
 
 print poly3
@@ -547,12 +580,12 @@ print poly3
 
 
 #дыра по часовой, граница против
-poly2 = [(1, 1), (1, -1), (-1, -1), (-1, 1), (1, 1), (2, 2), (-2, 2), (-2, -2), (2, -2), (2, 2)]
+#poly2 = [(1, 1), (1, -1), (-1, -1), (-1, 1), (1, 1), (2, 2), (-2, 2), (-2, -2), (2, -2), (2, 2)]
 
-poly4 = [(0.5, 0.5), (0.5, -0.5), (-0.5, -0.5), (-0.5, 0.5), (0.5, 0.5), (1, 1), (-1, 1), (-1, -1), (1, -1), (1, 1)]
+#poly4 = [(0.5, 0.5), (0.5, -0.5), (-0.5, -0.5), (-0.5, 0.5), (0.5, 0.5), (1, 1), (-1, 1), (-1, -1), (1, -1), (1, 1)]
 
 
-print isPointInPath(-1.5, 1.5, poly2)
+#print isPointInPath(-1.5, 1.5, poly2)
 
 
 #libtcod.line()
@@ -568,7 +601,7 @@ pix = libtcod.image_load("map.png")
 
 # create object representing the player
 fighter_component = Fighter(hp=30, defense=2, power=5, death_function=player_death)
-player = Object(30, 30, '@', 'player', libtcod.black, blocks=False, fighter=fighter_component)
+player = Object(100, 100, '@', 'player', libtcod.yellow, blocks=False, fighter=fighter_component)
 
 # the list of objects with just the player
 objects = [player]
@@ -593,6 +626,16 @@ map=dict();
 
 make_map()
 
+traversalMap = numpy.array(numpy.zeros((GLOBALMAP_WIDTH,GLOBALMAP_HEIGHT)))
+
+for i in range(0, GLOBALMAP_WIDTH):
+    for j in range(0, GLOBALMAP_HEIGHT):
+        x = i / GLOBALMAP_WIDTH
+        y = j / GLOBALMAP_HEIGHT
+        if isPointInPath(x, y, poly3):
+            traversalMap[i,j]=1
+
+
 while not libtcod.console_is_window_closed():
 
 
@@ -605,12 +648,12 @@ while not libtcod.console_is_window_closed():
 
     render_all()
 
-    for i in range(0,MAP_WIDTH):
-        for j in range(0,MAP_HEIGHT):
-            x = i / MAP_WIDTH
-            y = j / MAP_HEIGHT
-            if isPointInPath(x, y, poly3):
-                libtcod.console_set_char_background(con, i,j, libtcod.white)
+    for i in range(max(player.x-MAP_WIDTH2,0),min(player.x+MAP_WIDTH2,GLOBALMAP_WIDTH)):
+        for j in range(max(player.y-MAP_HEIGHT2,0),min(player.y+MAP_HEIGHT2,GLOBALMAP_HEIGHT)):
+            if traversalMap[i,j]==1:
+                libtcod.console_set_char_background(con, i-player.x+MAP_WIDTH2, j-player.y+MAP_HEIGHT2, libtcod.white)
+            else:
+                libtcod.console_set_char_background(con, i - player.x + MAP_WIDTH2, j - player.y + MAP_HEIGHT2, libtcod.black)
 
     libtcod.console_flush()
 
