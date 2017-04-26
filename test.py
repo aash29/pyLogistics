@@ -11,8 +11,8 @@ SCREEN_WIDTH = 160
 SCREEN_HEIGHT = 100
 
 
-GLOBALMAP_WIDTH = 200
-GLOBALMAP_HEIGHT = 200
+GLOBALMAP_WIDTH = 500
+GLOBALMAP_HEIGHT = 500
 
 # size of the map
 MAP_WIDTH = 161
@@ -568,6 +568,7 @@ for poly2 in batchPolys:
             path2[i][1] = (path2[i][1] - minY) / scaleY
 
 poly3=[]
+poly3.append([0, 0])
 for poly2 in batchPolys:
     for path2 in poly2:
         poly3.extend(path2)
@@ -575,6 +576,7 @@ for poly2 in batchPolys:
         poly3.append([0,0])
 #print maxX,minX,maxY,minY
 
+polyArray=numpy.array(poly3)
 print poly3
 
 
@@ -601,7 +603,7 @@ pix = libtcod.image_load("map.png")
 
 # create object representing the player
 fighter_component = Fighter(hp=30, defense=2, power=5, death_function=player_death)
-player = Object(100, 100, '@', 'player', libtcod.yellow, blocks=False, fighter=fighter_component)
+player = Object(250, 250, '@', 'player', libtcod.yellow, blocks=False, fighter=fighter_component)
 
 # the list of objects with just the player
 objects = [player]
