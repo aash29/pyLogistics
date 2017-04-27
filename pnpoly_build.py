@@ -2,11 +2,11 @@
 from cffi import FFI
 ffibuilder = FFI()
 
-ffibuilder.cdef("int pnpoly(int, float *, float *, float, float );")
+ffibuilder.cdef("int pnpoly(int, double *, double *, double, double);")
 
-ffibuilder.set_source("pnpoly",
+ffibuilder.set_source("pnpoly_module",
 r"""
-    static int pnpoly(int nvert, float *vertx, float *verty, float testx, float testy)
+    static int pnpoly(int nvert, double *vertx, double *verty, double testx, double testy)
     {
         int i, j, c = 0;
         for (i = 0, j = nvert-1; i < nvert; j = i++) {

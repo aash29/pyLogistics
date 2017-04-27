@@ -11,8 +11,8 @@ SCREEN_WIDTH = 160
 SCREEN_HEIGHT = 100
 
 
-GLOBALMAP_WIDTH = 500
-GLOBALMAP_HEIGHT = 500
+GLOBALMAP_WIDTH = 700
+GLOBALMAP_HEIGHT = 700
 
 # size of the map
 MAP_WIDTH = 161
@@ -474,6 +474,12 @@ def cast_heal():
 #If there is only one connected component, then it is optional to repeat the first vertex at the end. It's also optional to surround the component with zero vertices.
 
 
+import pnpoly
+
+
+
+
+
 
 def isPointInPath(x, y, poly):
     num = len(poly)
@@ -560,7 +566,7 @@ minY = min(ylist)
 scaleX = maxX-minX
 scaleY = maxY-minY
 
-batchPolys =polys[0:5]
+batchPolys =polys[0:2000]
 for poly2 in batchPolys:
     for path2 in poly2:
         for i, pt2 in enumerate(path2):
@@ -628,15 +634,27 @@ map=dict();
 
 make_map()
 
+
+import time
+
+
 traversalMap = numpy.array(numpy.zeros((GLOBALMAP_WIDTH,GLOBALMAP_HEIGHT)))
+
+start = time.time()
+
+vx = numpy.array(polyArray[:,0])
+vy = numpy.array(polyArray[:,1])
 
 for i in range(0, GLOBALMAP_WIDTH):
     for j in range(0, GLOBALMAP_HEIGHT):
         x = i / GLOBALMAP_WIDTH
         y = j / GLOBALMAP_HEIGHT
-        if isPointInPath(x, y, poly3):
+        if pnpoly.pnpoly2(x, y, vx, vy):
+        #if isPointInPath(x, y, poly3):
             traversalMap[i,j]=1
 
+end = time.time()
+print(end - start)
 
 while not libtcod.console_is_window_closed():
 
