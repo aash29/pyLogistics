@@ -3,6 +3,38 @@
 from pnpoly_module import ffi, lib
 import sys
 import numpy
+
+# x, y -- x and y coordinates of point
+# poly -- a list of tuples [(x, y), (x, y), ...]
+
+#Concave Components, Multiple Components, and Holes
+
+#The polygon may be concave. However, if a vertex is very close to an edge (that the vertex is not an end of) then beware of roundoff errors.
+
+#The direction that you list the vertices (clockwise or counterclockwise) does not matter.
+
+#The polygon may contain multiple separate components, and/or holes, which may be concave, provided that you separate the components and holes with a (0,0) vertex, as follows.
+
+#First, include a (0,0) vertex.
+
+#Then include the first component' vertices, repeating its first vertex after the last vertex.
+
+#Include another (0,0) vertex.
+
+#Include another component or hole, repeating its first vertex after the last vertex.
+
+#Repeat the above two steps for each component and hole.
+
+#Include a final (0,0) vertex.
+
+#For example, let three components' vertices be A1, A2, A3, B1, B2, B3, and C1, C2, C3. Let two holes be H1, H2, H3, and I1, I2, I3. Let O be the point (0,0). List the vertices thus:
+
+#O, A1, A2, A3, A1, O, B1, B2, B3, B1, O, C1, C2, C3, C1, O, H1, H2, H3, H1, O, I1, I2, I3, I1, O.
+
+#Each component or hole's vertices may be listed either clockwise or counter-clockwise.
+
+#If there is only one connected component, then it is optional to repeat the first vertex at the end. It's also optional to surround the component with zero vertices.
+
 def pnpoly2(x, y, vx, vy):
 
     n = len(vx)

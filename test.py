@@ -11,8 +11,8 @@ SCREEN_WIDTH = 160
 SCREEN_HEIGHT = 100
 
 
-GLOBALMAP_WIDTH = 700
-GLOBALMAP_HEIGHT = 700
+GLOBALMAP_WIDTH = 600
+GLOBALMAP_HEIGHT = 600
 
 # size of the map
 MAP_WIDTH = 161
@@ -39,13 +39,23 @@ FOV_ALGO = 0  # default FOV algorithm
 FOV_LIGHT_WALLS = True  # light walls or not
 TORCH_RADIUS = 10
 
-LIMIT_FPS = 20  # 20 frames-per-second maximum
+LIMIT_FPS = 40  # 20 frames-per-second maximum
 
 color_dark_wall = libtcod.Color(0, 0, 100)
 color_light_wall = libtcod.Color(130, 110, 50)
 color_dark_ground = libtcod.Color(50, 50, 150)
 color_light_ground = libtcod.Color(200, 180, 50)
 
+
+
+
+class Zone:
+    def __init__(self, id, name, tiles, desc, coords):
+        self.tiles = tiles
+        self.desc = desc
+        self.name = name
+        self.id = id
+        self.coords = coords
 
 class Tile:
     # a tile of the map and its properties
@@ -171,27 +181,6 @@ def is_blocked(x, y):
         return True
 
     return False
-
-
-def make_map():
-    global map, player
-
-    # fill map with "blocked" tiles
-    #map = [[Tile(False)
-    #        for y in range(player.y - MAP_HEIGHT2, player.y + MAP_HEIGHT2)
-    #        for x in range(player.x-MAP_WIDTH2,player.x+MAP_WIDTH2)]]
-
-    for x1 in range(- MAP_WIDTH2,  + MAP_WIDTH2):
-        for y1 in range(- MAP_HEIGHT2, + MAP_HEIGHT2):
-            c1 = libtcod.console_get_char_background(con, MAP_WIDTH2 + x1, MAP_HEIGHT2 + y1)
-            map[x1+player.x, y1+player.y] = Tile(False)
-            #map[x1+player.x, y1+player.y].blocked = not ((c1.r == 242) and (c1.g == 239) and (c1.b == 233))  #background
-            map[x1 + player.x, y1 + player.y].blocked = ((c1.r == 128) and (c1.g == 128) and (c1.b == 128))
-
-
-
-
-    #message(str(c1==libtcod.Color(242,239,233)))
 
 
 
@@ -442,36 +431,7 @@ def cast_heal():
     player.fighter.heal(HEAL_AMOUNT)
 
 
-# x, y -- x and y coordinates of point
-# poly -- a list of tuples [(x, y), (x, y), ...]
 
-#Concave Components, Multiple Components, and Holes
-
-#The polygon may be concave. However, if a vertex is very close to an edge (that the vertex is not an end of) then beware of roundoff errors.
-
-#The direction that you list the vertices (clockwise or counterclockwise) does not matter.
-
-#The polygon may contain multiple separate components, and/or holes, which may be concave, provided that you separate the components and holes with a (0,0) vertex, as follows.
-
-#First, include a (0,0) vertex.
-
-#Then include the first component' vertices, repeating its first vertex after the last vertex.
-
-#Include another (0,0) vertex.
-
-#Include another component or hole, repeating its first vertex after the last vertex.
-
-#Repeat the above two steps for each component and hole.
-
-#Include a final (0,0) vertex.
-
-#For example, let three components' vertices be A1, A2, A3, B1, B2, B3, and C1, C2, C3. Let two holes be H1, H2, H3, and I1, I2, I3. Let O be the point (0,0). List the vertices thus:
-
-#O, A1, A2, A3, A1, O, B1, B2, B3, B1, O, C1, C2, C3, C1, O, H1, H2, H3, H1, O, I1, I2, I3, I1, O.
-
-#Each component or hole's vertices may be listed either clockwise or counter-clockwise.
-
-#If there is only one connected component, then it is optional to repeat the first vertex at the end. It's also optional to surround the component with zero vertices.
 
 
 import pnpoly
@@ -535,10 +495,15 @@ with open('map.geojson','r') as f:
     data = json.load(f)
 
 polys=[]
+zones = dict()
+
+
 for feature in data['features']:
     #print feature['geometry']['type']
     #print feature['geometry']['coordinates']
     if ('building' in feature['properties']) or ('waterway' in feature['properties']):
+
+        zones[feature['id']]=Zone(feature['id'],feature['properties'].get('name'), None, '', feature['geometry']['coordinates'])
         if feature['geometry']['type'] == 'Polygon':
             polys.append(feature['geometry']['coordinates'])
     #if feature['geometry']['type'] == 'MultiPolygon':
@@ -566,7 +531,7 @@ minY = min(ylist)
 scaleX = maxX-minX
 scaleY = maxY-minY
 
-batchPolys =polys[0:2000]
+batchPolys =polys[0:1000]
 for poly2 in batchPolys:
     for path2 in poly2:
         for i, pt2 in enumerate(path2):
@@ -632,8 +597,6 @@ key = libtcod.Key()
 
 map=dict();
 
-make_map()
-
 
 import time
 
@@ -655,6 +618,19 @@ for i in range(0, GLOBALMAP_WIDTH):
 
 end = time.time()
 print(end - start)
+
+
+message('lalala very very very very very very very very very very very very very very very very very very very very very very very very very very very very very '
+        'very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very '
+        'very very very very very very very very very very very very very very very very very very very very very very very very very very very very '
+        'very very very very very very very very very very very very very very very very very very very very very very very very very very very very '
+        'very very very very very very very very very very very very very very very very very very very very very very very very very very very very '
+        'very very very very very very very very very very very very very very very very very very very very very very very very very very very very '
+        'very very very very very very very very very very very very very very very very very very very very very very very very very very very very '
+        'very very very very very very very very very very very very very very very very very very very very very very very very very very very very '
+        'very very very very very very very very very very very very very very very very very very very very very very very very very very very very '
+        'very very very very very very very very very very very very very very very very very very very very very very very very very very very very '
+        'very very very very very very very very very very very very very very very very very very very very very very very very very very very very    long message')
 
 while not libtcod.console_is_window_closed():
 
