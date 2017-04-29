@@ -10,7 +10,6 @@ import textwrap
 SCREEN_WIDTH = 160
 SCREEN_HEIGHT = 100
 
-
 GLOBALMAP_WIDTH = 600
 GLOBALMAP_HEIGHT = 600
 
@@ -20,6 +19,11 @@ MAP_HEIGHT = 91
 
 MAP_WIDTH2 = 80
 MAP_HEIGHT2 = 45
+
+
+currentCell = dict(x =0,y=0)
+
+
 
 # sizes and coordinates relevant for the GUI
 BAR_WIDTH = 20
@@ -266,12 +270,25 @@ def render_all():
 
     player.draw()
 
+
+    #message(str(currentCell['x'])+','+str(currentCell['y']))
+
     # blit the contents of "con" to the root console
     libtcod.console_blit(con, 0, 0, MAP_WIDTH, MAP_HEIGHT, 0, 0, 0)
 
     # prepare to render the GUI panel
     libtcod.console_set_default_background(panel, libtcod.black)
     libtcod.console_clear(panel)
+
+    libtcod.console_print(panel,0,0,str(currentCell['x'])+','+str(currentCell['y']))
+
+    currentCellDesc = [];
+    for id, zone in zones.iteritems():
+        if (currentCell['x'],currentCell['y']) in zone.tiles:
+            currentCellDesc.append(zone.desc)
+
+    libtcod.console_print(panel,10,0,str(currentCell['x'])+','+str(currentCell['y']))
+
 
     # print the game messages, one line at a time
     y = 1
@@ -497,13 +514,19 @@ with open('map.geojson','r') as f:
 polys=[]
 zones = dict()
 
+xlist = []
+ylist=[]
 
 for feature in data['features']:
     #print feature['geometry']['type']
     #print feature['geometry']['coordinates']
     if ('building' in feature['properties']) or ('waterway' in feature['properties']):
-
-        zones[feature['id']]=Zone(feature['id'],feature['properties'].get('name'), None, '', feature['geometry']['coordinates'])
+        zones[feature['id']]=Zone(feature['id'],feature['properties'].get('name'), [], '', feature['geometry']['coordinates'])
+        if ('multipolygon' == feature['properties'].get('type')):
+            for path in zones[feature['id']].coords:
+                for pt1 in path:
+                    xlist.append(pt1[0])
+                    ylist.append(pt1[1])
         if feature['geometry']['type'] == 'Polygon':
             polys.append(feature['geometry']['coordinates'])
     #if feature['geometry']['type'] == 'MultiPolygon':
@@ -514,14 +537,12 @@ print "Number of zones:" + str(len(data['features']))
 
 #pt1 = (30.29212359637388, 59.81219977203058)
 
-xlist = []
-ylist=[]
 
-for poly1 in polys:
-    for path1 in poly1:
-        for pt1 in path1:
-            xlist.append(pt1[0])
-            ylist.append(pt1[1])
+#for poly1 in polys:
+#    for path1 in poly1:
+#        for pt1 in path1:
+#            xlist.append(pt1[0])
+#            ylist.append(pt1[1])
 
 maxX = max(xlist)
 maxY = max(ylist)
@@ -531,7 +552,7 @@ minY = min(ylist)
 scaleX = maxX-minX
 scaleY = maxY-minY
 
-batchPolys =polys[0:1000]
+batchPolys =polys[0:100]
 for poly2 in batchPolys:
     for path2 in poly2:
         for i, pt2 in enumerate(path2):
@@ -574,7 +595,7 @@ pix = libtcod.image_load("map.png")
 
 # create object representing the player
 fighter_component = Fighter(hp=30, defense=2, power=5, death_function=player_death)
-player = Object(250, 250, '@', 'player', libtcod.yellow, blocks=False, fighter=fighter_component)
+player = Object(568, 322, '@', 'player', libtcod.yellow, blocks=False, fighter=fighter_component)
 
 # the list of objects with just the player
 objects = [player]
@@ -603,6 +624,10 @@ import time
 
 traversalMap = numpy.array(numpy.zeros((GLOBALMAP_WIDTH,GLOBALMAP_HEIGHT)))
 
+
+#for zone in zones:
+
+
 start = time.time()
 
 vx = numpy.array(polyArray[:,0])
@@ -630,7 +655,7 @@ message('lalala very very very very very very very very very very very very very
         'very very very very very very very very very very very very very very very very very very very very very very very very very very very very '
         'very very very very very very very very very very very very very very very very very very very very very very very very very very very very '
         'very very very very very very very very very very very very very very very very very very very very very very very very very very very very '
-        'very very very very very very very very very very very very very very very very very very very very very very very very very very very very    long message')
+        'very very very very very very very very very very very very very very very very very very very very very very very very very very very very   ляляля')
 
 while not libtcod.console_is_window_closed():
 
@@ -640,7 +665,10 @@ while not libtcod.console_is_window_closed():
 
     #libtcod.image_blit(pix, con, player.x, player.y, libtcod.BKGND_SET, 0.5, 0.5, 0)
 
+    mouseStatus = libtcod.mouse_get_status()
 
+    currentCell['x'] = player.x-MAP_WIDTH2 + mouseStatus.cx
+    currentCell['y'] = player.y-MAP_HEIGHT2 + mouseStatus.cy
 
     render_all()
 
