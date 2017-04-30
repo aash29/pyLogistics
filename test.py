@@ -3,7 +3,8 @@ from __future__ import division
 import libtcodpy as libtcod
 import math
 import textwrap
-
+from unidecode import unidecode
+import pnpoly
 
 
 # actual size of the window
@@ -11,7 +12,7 @@ SCREEN_WIDTH = 160
 SCREEN_HEIGHT = 100
 
 GLOBALMAP_WIDTH = 600
-GLOBALMAP_HEIGHT = 600
+GLOBALMAP_HEIGHT = 300
 
 # size of the map
 MAP_WIDTH = 161
@@ -60,6 +61,7 @@ class Zone:
         self.name = name
         self.id = id
         self.coords = coords
+        self.preppedCoords=numpy.array([])
 
 class Tile:
     # a tile of the map and its properties
@@ -271,7 +273,7 @@ def render_all():
     player.draw()
 
 
-    #message(str(currentCell['x'])+','+str(currentCell['y']))
+
 
     # blit the contents of "con" to the root console
     libtcod.console_blit(con, 0, 0, MAP_WIDTH, MAP_HEIGHT, 0, 0, 0)
@@ -282,12 +284,21 @@ def render_all():
 
     libtcod.console_print(panel,0,0,str(currentCell['x'])+','+str(currentCell['y']))
 
+    x = currentCell['x'] / GLOBALMAP_WIDTH
+    y = currentCell['y'] / GLOBALMAP_HEIGHT
+
+    for id,zone in zones.iteritems():
+        vx = numpy.array(zone.preppedCoords[:,0])
+        vy = numpy.array(zone.preppedCoords[:,1])
+        if pnpoly.pnpoly2(x, y, vx, vy):
+            libtcod.console_print(panel, 10, 0, unidecode(zone.name))
+
     currentCellDesc = [];
     for id, zone in zones.iteritems():
         if (currentCell['x'],currentCell['y']) in zone.tiles:
             currentCellDesc.append(zone.desc)
 
-    libtcod.console_print(panel,10,0,str(currentCell['x'])+','+str(currentCell['y']))
+
 
 
     # print the game messages, one line at a time
@@ -451,13 +462,6 @@ def cast_heal():
 
 
 
-import pnpoly
-
-
-
-
-
-
 def isPointInPath(x, y, poly):
     num = len(poly)
     i = 0
@@ -482,6 +486,13 @@ def flatten(lis):
         else:
             new_lis.append(item)
     return new_lis
+
+def depth(lis,n):
+    n = n + 1
+    for item in lis:
+        if isinstance(item, list):
+            depth(item,n)
+    return n
 
 
 
@@ -508,7 +519,7 @@ def flatten(lis):
 import json
 import numpy
 
-with open('map.geojson','r') as f:
+with open('little.geojson','r') as f:
     data = json.load(f)
 
 polys=[]
@@ -520,22 +531,25 @@ ylist=[]
 for feature in data['features']:
     #print feature['geometry']['type']
     #print feature['geometry']['coordinates']
-    if ('building' in feature['properties']) or ('waterway' in feature['properties']):
+    if (('building' in feature['properties']) or ('waterway' in feature['properties'])) and (feature['geometry']['type'] == 'Polygon'):
         zones[feature['id']]=Zone(feature['id'],feature['properties'].get('name'), [], '', feature['geometry']['coordinates'])
-        if ('multipolygon' == feature['properties'].get('type')):
-            for path in zones[feature['id']].coords:
-                for pt1 in path:
-                    xlist.append(pt1[0])
-                    ylist.append(pt1[1])
+        if zones[feature['id']].name==None:
+            zones[feature['id']].name=feature['id']
+        #if ('multipolygon' == feature['properties'].get('type')):
+        coords=flatten(zones[feature['id']].coords)
+        i=0
+        for pt1c in coords:
+            if (i%2)==0:
+                xlist.append(pt1c)
+            else:
+                ylist.append(pt1c)
+            i=i+1
         if feature['geometry']['type'] == 'Polygon':
             polys.append(feature['geometry']['coordinates'])
     #if feature['geometry']['type'] == 'MultiPolygon':
     #    poly1.extend(feature['geometry']['coordinates'])
 
 print "Number of zones:" + str(len(data['features']))
-#внешнаяя граница первая, внутренние остальные
-
-#pt1 = (30.29212359637388, 59.81219977203058)
 
 
 #for poly1 in polys:
@@ -552,12 +566,28 @@ minY = min(ylist)
 scaleX = maxX-minX
 scaleY = maxY-minY
 
-batchPolys =polys[0:100]
-for poly2 in batchPolys:
-    for path2 in poly2:
-        for i, pt2 in enumerate(path2):
-            path2[i][0] = (path2[i][0] - minX) / scaleX
-            path2[i][1] = (path2[i][1] - minY) / scaleY
+
+
+for id, zone in zones.iteritems():
+    poly3 = []
+    poly3.append([0, 0])
+    for path in zone.coords:
+        d1 = depth(path,0)
+        for i, pt in enumerate(path):
+            path[i][0] = (path[i][0] - minX) / scaleX
+            path[i][1] = 1 - (path[i][1] - minY) / scaleY
+    poly3.extend(path)
+    poly3.append(path[0])
+    poly3.append([0, 0])
+    zone.preppedCoords = numpy.array(poly3)
+
+batchPolys =polys[:]
+
+#for poly2 in batchPolys:
+#    for path2 in poly2:
+#        for i, pt2 in enumerate(path2):
+#            path2[i][0] = (path2[i][0] - minX) / scaleX
+#            path2[i][1] = (path2[i][1] - minY) / scaleY
 
 poly3=[]
 poly3.append([0, 0])
@@ -595,7 +625,7 @@ pix = libtcod.image_load("map.png")
 
 # create object representing the player
 fighter_component = Fighter(hp=30, defense=2, power=5, death_function=player_death)
-player = Object(568, 322, '@', 'player', libtcod.yellow, blocks=False, fighter=fighter_component)
+player = Object(230, 205, '@', 'player', libtcod.yellow, blocks=False, fighter=fighter_component)
 
 # the list of objects with just the player
 objects = [player]
@@ -638,7 +668,6 @@ for i in range(0, GLOBALMAP_WIDTH):
         x = i / GLOBALMAP_WIDTH
         y = j / GLOBALMAP_HEIGHT
         if pnpoly.pnpoly2(x, y, vx, vy):
-        #if isPointInPath(x, y, poly3):
             traversalMap[i,j]=1
 
 end = time.time()
