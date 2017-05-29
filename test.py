@@ -292,11 +292,14 @@ def render_all():
         vy = numpy.array(zone.preppedCoords[:,1])
         if pnpoly.pnpoly2(x, y, vx, vy):
             libtcod.console_print(panel, 10, 0, unidecode(zone.name))
+            message(zone.desc)
 
     currentCellDesc = [];
     for id, zone in zones.iteritems():
         if (currentCell['x'],currentCell['y']) in zone.tiles:
             currentCellDesc.append(zone.desc)
+
+
 
 
 
@@ -395,7 +398,6 @@ def inventory_menu(header):
 
 def handle_keys():
     global key;
-
     if key.vk == libtcod.KEY_ENTER and key.lalt:
         # Alt+Enter: toggle fullscreen
         libtcod.console_set_fullscreen(not libtcod.console_is_fullscreen())
@@ -535,6 +537,10 @@ for feature in data['features']:
         zones[feature['id']]=Zone(feature['id'],feature['properties'].get('name'), [], '', feature['geometry']['coordinates'])
         if zones[feature['id']].name==None:
             zones[feature['id']].name=feature['id']
+        if (feature['properties'].get('addr:street')) != None:
+            zones[feature['id']].desc = zones[feature['id']].desc + unidecode(feature['properties'].get('addr:street'))
+        if (feature['properties'].get('addr:housenumber')) != None:
+            zones[feature['id']].desc = zones[feature['id']].desc + (feature['properties'].get('addr:housenumber'))
         #if ('multipolygon' == feature['properties'].get('type')):
         coords=flatten(zones[feature['id']].coords)
         i=0
@@ -599,7 +605,7 @@ for poly2 in batchPolys:
 #print maxX,minX,maxY,minY
 
 polyArray=numpy.array(poly3)
-print poly3
+#print poly3
 
 
 
@@ -609,7 +615,7 @@ print poly3
 #poly4 = [(0.5, 0.5), (0.5, -0.5), (-0.5, -0.5), (-0.5, 0.5), (0.5, 0.5), (1, 1), (-1, 1), (-1, -1), (1, -1), (1, 1)]
 
 
-#print isPointInPath(-1.5, 1.5, poly2)
+#print isPointInPath(-1.5, 1.5, polyu2)
 
 
 #libtcod.line()
@@ -673,18 +679,6 @@ for i in range(0, GLOBALMAP_WIDTH):
 end = time.time()
 print(end - start)
 
-
-message('lalala very very very very very very very very very very very very very very very very very very very very very very very very very very very very very '
-        'very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very '
-        'very very very very very very very very very very very very very very very very very very very very very very very very very very very very '
-        'very very very very very very very very very very very very very very very very very very very very very very very very very very very very '
-        'very very very very very very very very very very very very very very very very very very very very very very very very very very very very '
-        'very very very very very very very very very very very very very very very very very very very very very very very very very very very very '
-        'very very very very very very very very very very very very very very very very very very very very very very very very very very very very '
-        'very very very very very very very very very very very very very very very very very very very very very very very very very very very very '
-        'very very very very very very very very very very very very very very very very very very very very very very very very very very very very '
-        'very very very very very very very very very very very very very very very very very very very very very very very very very very very very '
-        'very very very very very very very very very very very very very very very very very very very very very very very very very very very very   ляляля')
 
 while not libtcod.console_is_window_closed():
 
