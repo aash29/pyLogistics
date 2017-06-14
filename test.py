@@ -25,7 +25,6 @@ MAP_HEIGHT2 = 45
 currentCell = dict(x =0,y=0)
 
 
-
 # sizes and coordinates relevant for the GUI
 BAR_WIDTH = 20
 PANEL_HEIGHT = 7
@@ -40,7 +39,7 @@ INVENTORY_WIDTH = 50
 # spell values
 HEAL_AMOUNT = 4
 
-FOV_ALGO = 0  # default FOV algorithm
+FOV_ALGO = 0  # default FOV algorithmr
 FOV_LIGHT_WALLS = True  # light walls or not
 TORCH_RADIUS = 10
 
@@ -223,6 +222,7 @@ def render_bar(x, y, total_width, name, value, maximum, bar_color, back_color):
     libtcod.console_set_default_background(panel, bar_color)
     if bar_width > 0:
         libtcod.console_rect(panel, x, y, bar_width, 1, False, libtcod.BKGND_SCREEN)
+        
 
     # finally, some centered text with the values
     libtcod.console_set_default_foreground(panel, libtcod.white)
